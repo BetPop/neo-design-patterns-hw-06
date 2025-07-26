@@ -1,14 +1,27 @@
-import { IMessageService } from "./IMessageService";
+import { IMessageService } from './IMessageService';
+
+export class RateLimitProxy implements IMessageService {
+  private lastSent: number = 0;
+
+  constructor(
+    private wrappee: IMessageService,
+    private intervalMs: number
+  ) {}
+
+  send(message: string): void {
+    const now = Date.now();
+    if (now - this.lastSent >= this.intervalMs) {
+      this.wrappee.send(message);
+      this.lastSent = now;
+    } else {
+      console.log('[RateLimit] skipped');
+    }
+  }
+}
 
 export function createRateLimitProxy(
-  service: IMessageService,
+  wrappee: IMessageService,
   intervalMs: number
 ): IMessageService {
-  let lastCallTime = 0;
-
-  return new Proxy(service, {
-    get(target, prop) {
-      // TODO: Implement the proxy
-    },
-  });
+  return new RateLimitProxy(wrappee, intervalMs);
 }
